@@ -42,9 +42,11 @@ spec:
           envFrom:
             - configMapRef:
                 name: kantine-config
-            # KANTINE_PIN - von Hand angelegt, nicht im Repo (siehe README).
+            # KANTINE_PIN steht in config.env ODER im von Hand angelegten
+            # Secret. Steht sie in beiden, gewinnt das Secret (spaetere Quelle).
             - secretRef:
                 name: kantine
+                optional: true
           ports:
             - name: metrics
               containerPort: 9100

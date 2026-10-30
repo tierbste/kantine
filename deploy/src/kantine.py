@@ -25,7 +25,7 @@ import urllib.request
 import zoneinfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-PIN = os.environ["KANTINE_PIN"]
+PIN = os.environ.get("KANTINE_PIN") or ""
 REFRESH = int(os.environ.get("REFRESH_SECONDS", "21600"))
 RETRY = int(os.environ.get("RETRY_SECONDS", "900"))
 TZ = zoneinfo.ZoneInfo("Europe/Berlin")
@@ -192,6 +192,9 @@ class Metriken(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    if not PIN:
+        raise SystemExit("KANTINE_PIN fehlt: in deploy/config.env eintragen "
+                         "oder Secret 'kantine' mit Key KANTINE_PIN anlegen")
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     threading.Thread(target=schleife, daemon=True).start()
     ThreadingHTTPServer(("", 9100), Metriken).serve_forever()

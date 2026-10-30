@@ -19,7 +19,7 @@ Prometheus-Metriken bereit. Keine Datenbank, kein eigenes Image.
 |---|---|
 | `deploy/` | Alles, was im Namespace läuft — **ohne** Namespace-Objekt (für OpenShift-Projekte und GitOps) |
 | `deploy/src/kantine.py` | Abruf, Aufbereitung, `/metrics` auf Port 9100; nur Python-Standardbibliothek, ~200 Zeilen |
-| `deploy/config.env` | Abruf-Intervall, Proxy — die Standort-PIN steht **nicht** im Repo, sondern im Secret `kantine` |
+| `deploy/config.env` | Abruf-Intervall, Proxy, Platzhalter für die Standort-PIN |
 | `deploy/50-deployment.yaml` | ein Pod, distroless-Python als Nicht-root, read-only Root-FS |
 | `deploy/70-servicemonitor.yaml`, `71-prometheusrule.yaml` | Scrape durch den Prometheus Operator, Alarm bei veraltetem Plan |
 | `deploy/80-networkpolicies.yaml` | eingehend nur Prometheus |
@@ -32,8 +32,16 @@ jede Änderung rollt den Pod automatisch neu aus.
 
 ## Installation
 
-Die Standort-PIN (aus der App bzw. vom Aushang der Kantine) kommt in ein
-Secret, das man einmal von Hand anlegt — sie gehört nicht ins Repo.
+Die Standort-PIN (aus der App bzw. vom Aushang der Kantine) hat zwei
+mögliche Orte — steht sie in beiden, gewinnt das Secret:
+
+- **Secret `kantine`** (Key `KANTINE_PIN`), einmal von Hand angelegt — für
+  öffentliche Repos und überall, wo die PIN nicht ins Git soll.
+- **`deploy/config.env`** — Zeile `KANTINE_PIN=` einkommentieren. Nur in einem
+  privaten Repo bzw. Fork; dann ist kein Secret nötig und alles kommt per GitOps.
+
+Die Befehle unten zeigen den Weg über das Secret; mit PIN in `config.env`
+entfällt die `create secret`-Zeile.
 
 ### OpenShift
 
@@ -59,9 +67,15 @@ kubectl -n kantine logs -f deploy/kantine
 ### GitOps (Argo CD o. ä.)
 
 Pfad `deploy/` mit Ziel-Namespace (OpenShift, Namespace existiert) oder Pfad
-`.` (Kubernetes, Namespace wird mit angelegt). Das Secret `kantine` vorher von
-Hand anlegen — oder verschlüsselt mitliefern, siehe
+`.` (Kubernetes, Namespace wird mit angelegt). Die PIN in einem privaten Fork
+in `deploy/config.env` eintragen, sonst das Secret `kantine` vorher von Hand
+anlegen — oder verschlüsselt mitliefern, siehe
 [PIN verschlüsselt im Repo](#pin-verschlüsselt-im-repo-optional).
+
+**Fork mit Pull-Mirror:** Eigene Änderungen wie die PIN in `config.env` nicht
+auf den gespiegelten Branch committen — der Mirror überschreibt sie oder bleibt
+hängen. Besser ein eigener Branch (z. B. `betrieb`) als `targetRevision`, auf
+den man Updates von `main` übernimmt.
 
 ## Checkliste für die Zielumgebung
 
@@ -115,16 +129,17 @@ getestet mit Grafana 13.
 
 | Variable | Standard | Bedeutung |
 |---|---|---|
-| `KANTINE_PIN` | — | Standort-PIN aus der App — kommt aus dem **Secret** `kantine`, nicht aus `config.env` |
+| `KANTINE_PIN` | — | Standort-PIN aus der App — hier (nur privates Repo) oder im Secret `kantine`, das Vorrang hat. Fehlt sie, beendet sich der Pod mit einer Meldung |
 | `REFRESH_SECONDS` | `21600` | Abruf-Intervall (6 h) |
 | `RETRY_SECONDS` | `900` | neuer Versuch nach einem Fehler |
 | `HTTPS_PROXY`, `NO_PROXY` | — | Firmen-Proxy, falls nötig |
 
 ## PIN verschlüsselt im Repo (optional)
 
-Standard ist: PIN nur im Cluster-Secret, nie im Repo. Wer das Secret trotzdem
-per GitOps verwalten will, hat drei übliche Wege — alle ersetzen nur das
-manuelle `create secret`, das Deployment bleibt gleich:
+In einem privaten Repo reicht `deploy/config.env`. In einem öffentlichen
+gehört die PIN ins Cluster-Secret. Wer das Secret trotzdem per GitOps verwalten
+will, hat drei übliche Wege — alle ersetzen nur das manuelle `create secret`,
+das Deployment bleibt gleich:
 
 | Weg | Wie | Haken |
 |---|---|---|
