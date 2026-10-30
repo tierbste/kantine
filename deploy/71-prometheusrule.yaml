@@ -1,0 +1,32 @@
+# Die qnips-API ist undokumentiert - ein App-Update kann sie jederzeit
+# brechen. Dann soll das auffallen, statt dass Grafana still alte Daten zeigt.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kantine
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  groups:
+    - name: kantine
+      rules:
+        - alert: KantineSpeiseplanVeraltet
+          expr: time() - kantine_abruf_letzter_erfolg_timestamp_seconds > 26 * 3600
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Kantinen-Speiseplan seit über 26 h nicht aktualisiert
+            description: |
+              Vermutlich hat sich die qnips-API geändert (Update der App
+              "Mein Aramark Restaurant"). Logs des Deployments kantine prüfen.
+        # job = Name des Service; ohne Namespace-Filter, damit die Regel in
+        # jedem Namespace/Projekt passt.
+        - alert: KantineExporterFehlt
+          expr: absent(up{job="kantine"} == 1)
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Kantinen-Exporter wird nicht gescrapt

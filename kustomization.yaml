@@ -1,0 +1,9 @@
+# Komplettes Setup fuer Kubernetes: Namespace kantine + Workloads aus deploy/.
+# Auf OpenShift stattdessen nur deploy/ ins Projekt anwenden (siehe README).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kantine
+
+resources:
+  - namespace.yaml
+  - deploy

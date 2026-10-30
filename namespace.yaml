@@ -1,0 +1,9 @@
+# Der Pod laeuft als nobody ohne Capabilities und mit read-only Root-FS -
+# damit erfuellt er "restricted", und PSA darf das auch erzwingen.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kantine
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted

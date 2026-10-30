@@ -1,0 +1,95 @@
+{
+  "uid": "kantine",
+  "title": "Kantine",
+  "tags": [
+    "kantine"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "version": 0,
+  "editable": true,
+  "graphTooltip": 0,
+  "refresh": "5m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true
+  },
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Datenquelle",
+        "query": "prometheus",
+        "regex": "",
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "current": {},
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "ausgabe",
+        "label": "Ausgabe",
+        "hide": 2,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "qryType": 3,
+          "query": "query_result(sort((topk by (gericht) (1, timestamp(kantine_gericht_info{aktuell=\"1\",kategorie=\"Spezial\"})) * 0 + 1) or (topk by (gericht) (1, timestamp(kantine_gericht_info{aktuell=\"1\",kategorie=\"Menü 1\"})) * 0 + 2) or (topk by (gericht) (1, timestamp(kantine_gericht_info{aktuell=\"1\",kategorie=\"Menü 2\"})) * 0 + 3) or (topk by (gericht) (1, timestamp(kantine_gericht_info{aktuell=\"1\",kategorie=\"Street Food\"})) * 0 + 4) or (topk by (gericht) (1, timestamp(kantine_gericht_info{aktuell=\"1\",kategorie=\"Suppe\"})) * 0 + 5) or label_replace(label_replace(absent(kantine_gericht_info{aktuell=\"1\"}) * 99, \"kachel\", \"<div style='font-size:22px;font-weight:700'>Kein Speiseplan veröffentlicht</div>\", \"\", \"\"), \"kategorie\", \"keiner\", \"\", \"\")))",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "query_result(sort((topk by (gericht) (1, timestamp(kantine_gericht_info{aktuell=\"1\",kategorie=\"Spezial\"})) * 0 + 1) or (topk by (gericht) (1, timestamp(kantine_gericht_info{aktuell=\"1\",kategorie=\"Menü 1\"})) * 0 + 2) or (topk by (gericht) (1, timestamp(kantine_gericht_info{aktuell=\"1\",kategorie=\"Menü 2\"})) * 0 + 3) or (topk by (gericht) (1, timestamp(kantine_gericht_info{aktuell=\"1\",kategorie=\"Street Food\"})) * 0 + 4) or (topk by (gericht) (1, timestamp(kantine_gericht_info{aktuell=\"1\",kategorie=\"Suppe\"})) * 0 + 5) or label_replace(label_replace(absent(kantine_gericht_info{aktuell=\"1\"}) * 99, \"kachel\", \"<div style='font-size:22px;font-weight:700'>Kein Speiseplan veröffentlicht</div>\", \"\", \"\"), \"kategorie\", \"keiner\", \"\", \"\")))",
+        "regex": "/kachel=\"(?<value>[^\"]*)\",kategorie=\"(?<text>[^\"]*)\"/",
+        "sort": 0,
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 6
+      },
+      "repeat": "ausgabe",
+      "repeatDirection": "h",
+      "maxPerRow": 5,
+      "options": {
+        "mode": "html",
+        "content": "${ausgabe:raw}",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    }
+  ]
+}

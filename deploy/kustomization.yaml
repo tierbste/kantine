@@ -1,0 +1,22 @@
+# Workloads ohne Namespace - landen im Ziel-Namespace des Aufrufs:
+#   OpenShift:   oc new-project kantine && oc apply -k deploy/
+#   Kubernetes:  kubectl apply -k .     (Wurzel legt Namespace kantine mit an)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - 50-deployment.yaml
+  - 60-service.yaml
+  - 70-servicemonitor.yaml
+  - 71-prometheusrule.yaml
+  - 80-networkpolicies.yaml
+
+# Skript und Einstellungen werden aus echten Dateien generiert. Der
+# Hash-Suffix im Namen loest bei jeder Aenderung automatisch einen Rollout aus.
+configMapGenerator:
+  - name: kantine-script
+    files:
+      - src/kantine.py
+  - name: kantine-config
+    envs:
+      - config.env

@@ -1,0 +1,16 @@
+# Scrape durch den Prometheus Operator. Waehlt euer Prometheus
+# ServiceMonitors nur mit bestimmten Labels aus (serviceMonitorSelector),
+# diese hier ergaenzen. OpenShift User Workload Monitoring nimmt ihn so.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kantine
+  labels:
+    app.kubernetes.io/name: kantine
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kantine
+  endpoints:
+    - port: metrics
+      interval: 60s
