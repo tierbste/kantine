@@ -64,18 +64,75 @@ kubectl apply -k .               # Namespace kantine + deploy/
 kubectl -n kantine logs -f deploy/kantine
 ```
 
-### GitOps (Argo CD o. ä.)
+### Argo CD / OpenShift GitOps
 
-Pfad `deploy/` mit Ziel-Namespace (OpenShift, Namespace existiert) oder Pfad
-`.` (Kubernetes, Namespace wird mit angelegt). Die PIN in einem privaten Fork
-in `deploy/config.env` eintragen, sonst das Secret `kantine` vorher von Hand
-anlegen — oder verschlüsselt mitliefern, siehe
-[PIN verschlüsselt im Repo](#pin-verschlüsselt-im-repo-optional).
+**Vorher von Hand anlegen:**
+
+1. **Projekt** — `deploy/` enthält keinen Namespace:
+   ```bash
+   oc new-project kantine
+   ```
+   (Kubernetes mit Pfad `.`: entfällt, der Namespace kommt aus dem Repo.)
+2. **Rechte für Argo CD im Projekt** — bei OpenShift GitOps per Label mit dem
+   Namespace der Argo-CD-Instanz. Entfällt, wenn die Instanz ohnehin
+   clusterweite Rechte hat.
+   ```bash
+   oc label namespace kantine argocd.argoproj.io/managed-by=openshift-gitops
+   ```
+3. **Repo-Zugang** — ist das Repo bzw. der Fork privat: Deploy-Token mit
+   `read_repository` anlegen und in Argo CD unter *Settings → Repositories*
+   eintragen.
+4. **PIN** — im privaten Fork in `deploy/config.env` eintragen **oder** als
+   Secret anlegen (siehe oben):
+   ```bash
+   oc -n kantine create secret generic kantine --from-literal=KANTINE_PIN=<PIN>
+   ```
+
+Außerdem die [Checkliste für die Zielumgebung](#checkliste-für-die-zielumgebung)
+durchgehen (Image, ausgehender Verkehr, User Workload Monitoring).
+**Nicht nötig:** Datenbank, Volume, eigenes Image, zusätzliche CRDs.
+
+**Die Application:**
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kantine
+  namespace: openshift-gitops          # Namespace der Argo-CD-Instanz
+spec:
+  project: default
+  source:
+    repoURL: https://gitlab.example.com/gruppe/kantine.git
+    targetRevision: main               # bzw. eigener Betriebs-Branch, s. u.
+    path: deploy                       # Kubernetes inkl. Namespace: "."
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kantine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+Das Secret liegt nicht im Repo und gehört damit nicht zur Application — Argo CD
+fasst es nicht an und löscht es auch nicht.
+
+**Sync scheitert mit `forbidden`** nur bei `ServiceMonitor`/`PrometheusRule`:
+Dem Argo-CD-Controller fehlt im Projekt die Rolle `monitoring-edit`
+(ServiceAccount-Name je nach Instanz, hier der Standard von OpenShift GitOps):
+
+```bash
+oc -n kantine adm policy add-role-to-user monitoring-edit \
+  system:serviceaccount:openshift-gitops:openshift-gitops-argocd-application-controller
+```
 
 **Fork mit Pull-Mirror:** Eigene Änderungen wie die PIN in `config.env` nicht
 auf den gespiegelten Branch committen — der Mirror überschreibt sie oder bleibt
 hängen. Besser ein eigener Branch (z. B. `betrieb`) als `targetRevision`, auf
 den man Updates von `main` übernimmt.
+
+Nach dem Sync das Dashboard importieren, siehe [Grafana-Dashboard](#grafana-dashboard).
 
 ## Checkliste für die Zielumgebung
 
